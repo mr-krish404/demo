@@ -1,0 +1,36 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import Dashboard from './pages/Dashboard';
+import ProjectDetail from './pages/ProjectDetail';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check if user has token
+    const token = localStorage.getItem('token');
+    setIsAuthenticated(!!token);
+  }, []);
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login setAuth={setIsAuthenticated} />} />
+        <Route path="/signup" element={<Signup setAuth={setIsAuthenticated} />} />
+        <Route 
+          path="/dashboard" 
+          element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/projects/:projectId" 
+          element={isAuthenticated ? <ProjectDetail /> : <Navigate to="/login" />} 
+        />
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;

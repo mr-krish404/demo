@@ -1,0 +1,151 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: apex-postgres
+    environment:
+      POSTGRES_DB: apex_pentest
+      POSTGRES_USER: apex_user
+      POSTGRES_PASSWORD: apex_password_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apex_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: apex-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: apex-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: apex_minio
+      MINIO_ROOT_PASSWORD: apex_minio_password_dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: apex-chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+
+  gateway:
+    build:
+      context: ../../services/gateway
+      dockerfile: Dockerfile
+    container_name: apex-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgresql://apex_user:apex_password_dev@postgres:5432/apex_pentest
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=dev_jwt_secret_change_in_production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  orchestrator:
+    build:
+      context: ../../services/orchestrator
+      dockerfile: Dockerfile
+    container_name: apex-orchestrator
+    ports:
+      - "8081:8081"
+    environment:
+      - DATABASE_URL=postgresql://apex_user:apex_password_dev@postgres:5432/apex_pentest
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=apex_minio
+      - MINIO_SECRET_KEY=apex_minio_password_dev
+      - CHROMA_URL=http://chromadb:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery-worker:
+    build:
+      context: ../../services/orchestrator
+      dockerfile: Dockerfile
+    container_name: apex-celery-worker
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - DATABASE_URL=postgresql://apex_user:apex_password_dev@postgres:5432/apex_pentest
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=apex_minio
+      - MINIO_SECRET_KEY=apex_minio_password_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  agent-runner:
+    build:
+      context: ../../services/agent-runner
+      dockerfile: Dockerfile
+    container_name: apex-agent-runner
+    ports:
+      - "8082:8082"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DATABASE_URL=postgresql://apex_user:apex_password_dev@postgres:5432/apex_pentest
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    privileged: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  chroma_data:
+
+networks:
+  default:
+    name: apex-network

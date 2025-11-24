@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "apex-reporter-agent"
+version = "0.1.0"
+description = "Reporter Agent for Apex Pentest X"
+authors = ["Apex Team"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+reportlab = "^4.0.7"
+jinja2 = "^3.1.2"
+sqlalchemy = "^2.0.23"
+psycopg2-binary = "^2.9.9"
+pydantic = "^2.5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

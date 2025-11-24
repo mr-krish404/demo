@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Shield, ArrowLeft, Play, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Shield, ArrowLeft, Play, AlertCircle, CheckCircle, Clock, Download } from 'lucide-react';
+import LiveScan from './LiveScan';
+import Evidence from './Evidence';
+import TestPlan from './TestPlan';
+import Settings from './Settings';
 
 interface Project {
   id: string;
@@ -116,8 +120,11 @@ export default function ProjectDetail() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="live-scan">Live Scan</TabsTrigger>
             <TabsTrigger value="findings">Findings</TabsTrigger>
-            <TabsTrigger value="jobs">Jobs</TabsTrigger>
+            <TabsTrigger value="evidence">Evidence</TabsTrigger>
+            <TabsTrigger value="test-plan">Test Plan</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -159,6 +166,10 @@ export default function ProjectDetail() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="live-scan">
+            <LiveScan projectId={projectId!} jobs={jobs} />
+          </TabsContent>
+
           <TabsContent value="findings" className="space-y-4">
             {findings.length === 0 ? (
               <Card>
@@ -178,9 +189,15 @@ export default function ProjectDetail() {
                           {finding.affected_url}
                         </CardDescription>
                       </div>
-                      <Badge className={getSeverityColor(finding.severity)}>
-                        {finding.severity.toUpperCase()}
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge className={getSeverityColor(finding.severity)}>
+                          {finding.severity.toUpperCase()}
+                        </Badge>
+                        <Button size="sm" variant="outline">
+                          <Download className="h-4 w-4 mr-2" />
+                          Report
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -192,6 +209,18 @@ export default function ProjectDetail() {
                 </Card>
               ))
             )}
+          </TabsContent>
+
+          <TabsContent value="evidence">
+            <Evidence projectId={projectId!} findings={findings} />
+          </TabsContent>
+
+          <TabsContent value="test-plan">
+            <TestPlan projectId={projectId!} jobs={jobs} />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Settings projectId={projectId!} project={project} />
           </TabsContent>
 
           <TabsContent value="jobs" className="space-y-4">

@@ -91,6 +91,14 @@ export class ApiClient {
   async getTargets(projectId: string) {
     return this.request(`/api/targets?project_id=${projectId}`);
   }
+
+  async getEvidence(findingId: string) {
+    return this.request(`/api/findings/${findingId}/evidence`);
+  }
+
+  async downloadReport(projectId: string, format: 'pdf' | 'html') {
+    return this.request(`/api/projects/${projectId}/report?format=${format}`);
+  }
 }
 
 export const apiClient = new ApiClient();

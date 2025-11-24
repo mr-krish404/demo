@@ -81,7 +81,7 @@ async def root():
 from app.routers import auth, projects, targets, scans, findings, evidence, agents, websocket
 
 # Register routers
-app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(auth.router, prefix="/api", tags=["Authentication"])
 app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(targets.router, prefix="/api/targets", tags=["Targets"])
 app.include_router(scans.router, prefix="/api/scans", tags=["Scans"])

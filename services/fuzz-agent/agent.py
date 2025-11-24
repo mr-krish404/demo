@@ -54,7 +54,9 @@ class MutationEngine:
             self._case_mutation,
             self._encoding_mutation,
             self._whitespace_mutation,
-            self._concatenation_mutation
+            self._concatenation_mutation,
+            self._entity_transformation,
+            self._grammar_rewrite
         ]
         
         mutator = random.choice(mutations)
@@ -83,6 +85,50 @@ class MutationEngine:
         """Add concatenation operators"""
         if 'script' in payload.lower():
             return payload.replace('script', 'scr'+'ipt')
+        return payload
+    
+    def _entity_transformation(self, payload: str) -> str:
+        """Apply HTML entity encoding and Unicode transformations"""
+        transformations = {
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#x27;',
+            'a': '\u0061',  # Unicode homoglyph
+            'e': '\u0065',
+            'o': '\u006f'
+        }
+        
+        result = payload
+        # Randomly apply entity encoding
+        if random.random() > 0.5:
+            for char, entity in transformations.items():
+                if char in result and random.random() > 0.7:
+                    result = result.replace(char, entity, 1)
+        
+        return result
+    
+    def _grammar_rewrite(self, payload: str) -> str:
+        """Apply grammar-based rewrites for bypassing filters"""
+        # JavaScript grammar variations
+        if 'alert' in payload.lower():
+            variations = [
+                payload.replace('alert', 'window.alert'),
+                payload.replace('alert', 'self.alert'),
+                payload.replace('alert', 'top.alert'),
+                payload.replace('alert(', 'alert\u0028'),  # Unicode parenthesis
+            ]
+            return random.choice(variations)
+        
+        # SQL grammar variations
+        if 'union' in payload.lower():
+            variations = [
+                payload.replace('UNION', 'UNION ALL'),
+                payload.replace('UNION', 'UNION/**/'),
+                payload.replace(' ', '/**/'),
+            ]
+            return random.choice(variations)
+        
         return payload
     
     def generate_payloads(self, attack_type: str, count: int = 10) -> List[str]:
@@ -166,15 +212,19 @@ class FuzzAgent:
                 test_url = f"{url}?test={urllib.parse.quote(payload)}"
                 response = requests.get(test_url, timeout=5)
                 
-                # Check if payload is reflected
-                if payload in response.text or payload.replace('<', '&lt;') in response.text:
+                # Check if payload is reflected with advanced detection
+                if self._detect_xss_reflection(response, payload):
+                    # Calculate confidence based on response analysis
+                    confidence = self._calculate_confidence(response, payload)
+                    
                     self.create_finding(
                         session, job,
                         "Potential Cross-Site Scripting (XSS)",
                         f"Reflected XSS detected at {url}. Payload: {payload}",
                         FindingSeverity.HIGH,
                         url,
-                        "test"
+                        "test",
+                        confidence
                     )
                     break
             except Exception as e:
@@ -244,8 +294,46 @@ class FuzzAgent:
             except Exception as e:
                 continue
     
+    def _detect_xss_reflection(self, response, payload: str) -> bool:
+        """Advanced XSS detection with DOM analysis"""
+        # Check for direct reflection
+        if payload in response.text:
+            return True
+        
+        # Check for encoded reflection
+        encoded_variants = [
+            payload.replace('<', '&lt;'),
+            payload.replace('>', '&gt;'),
+            urllib.parse.quote(payload)
+        ]
+        
+        for variant in encoded_variants:
+            if variant in response.text:
+                return True
+        
+        return False
+    
+    def _calculate_confidence(self, response, payload: str) -> float:
+        """Calculate confidence score based on response analysis"""
+        confidence = 0.5
+        
+        # Increase confidence if status code changed
+        if response.status_code != 200:
+            confidence += 0.1
+        
+        # Increase confidence if response time is anomalous
+        if response.elapsed.total_seconds() > 2.0:
+            confidence += 0.1
+        
+        # Increase confidence if error signatures present
+        error_indicators = ['error', 'exception', 'warning', 'failed']
+        if any(ind in response.text.lower() for ind in error_indicators):
+            confidence += 0.2
+        
+        return min(confidence, 0.95)
+    
     def create_finding(self, session, job, title: str, description: str, 
-                      severity: FindingSeverity, url: str, param: str):
+                      severity: FindingSeverity, url: str, param: str, confidence: float = 0.7):
         """Create a finding"""
         finding = Finding(
             project_id=job.project_id,
@@ -254,7 +342,7 @@ class FuzzAgent:
             title=title,
             description=description,
             severity=severity,
-            confidence=0.7,
+            confidence=confidence,
             status=FindingStatus.TENTATIVE,
             affected_url=url,
             affected_parameter=param

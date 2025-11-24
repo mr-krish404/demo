@@ -78,7 +78,7 @@ async def root():
     }
 
 # Import routers
-from app.routers import auth, projects, targets, scans, findings, evidence, agents
+from app.routers import auth, projects, targets, scans, findings, evidence, agents, websocket
 
 # Register routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
@@ -88,6 +88,7 @@ app.include_router(scans.router, prefix="/api/scans", tags=["Scans"])
 app.include_router(findings.router, prefix="/api/findings", tags=["Findings"])
 app.include_router(evidence.router, prefix="/api/evidence", tags=["Evidence"])
 app.include_router(agents.router, prefix="/api/agents", tags=["Agents"])
+app.include_router(websocket.router, tags=["WebSocket"])
 
 @app.on_event("startup")
 async def startup_event():

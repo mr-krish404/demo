@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "apex-auth-agent"
+version = "0.1.0"
+description = "Authentication Testing Agent for Apex Pentest X"
+authors = ["Apex Team"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.31.0"
+sqlalchemy = "^2.0.23"
+psycopg2-binary = "^2.9.9"
+pydantic = "^2.5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -160,13 +160,51 @@ class SessionAgent:
         """Test OAuth authentication"""
         print(f"Testing OAuth at {cred_data.get('url')}")
         
-        # OAuth testing would require more complex flow
-        # This is a placeholder implementation
-        return {
-            "success": False,
-            "error": "OAuth testing not fully implemented",
-            "note": "Requires OAuth flow implementation"
-        }
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context()
+            page = context.new_page()
+            
+            try:
+                # Navigate to OAuth authorization URL
+                auth_url = cred_data.get("auth_url")
+                if not auth_url:
+                    return {"success": False, "error": "No auth_url provided"}
+                
+                page.goto(auth_url, timeout=10000)
+                
+                # Fill in OAuth credentials if login page is shown
+                if "login" in page.url.lower() or "signin" in page.url.lower():
+                    username_selector = cred_data.get("username_selector", "input[name='username']")
+                    password_selector = cred_data.get("password_selector", "input[name='password']")
+                    
+                    page.fill(username_selector, cred_data.get("username", ""))
+                    page.fill(password_selector, cred_data.get("password", ""))
+                    page.click("button[type='submit']")
+                    
+                    page.wait_for_load_state("networkidle", timeout=5000)
+                
+                # Check for authorization success
+                success = "code=" in page.url or "access_token=" in page.url
+                
+                # Extract tokens if present
+                tokens = {}
+                if "access_token=" in page.url:
+                    import re
+                    token_match = re.search(r'access_token=([^&]+)', page.url)
+                    if token_match:
+                        tokens["access_token"] = token_match.group(1)
+                
+                return {
+                    "success": success,
+                    "tokens": tokens,
+                    "redirect_url": page.url
+                }
+            
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+            finally:
+                browser.close()
     
     def extract_csrf_token(self, page: Page) -> Optional[str]:
         """Extract CSRF token from page"""

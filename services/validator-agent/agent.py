@@ -12,11 +12,18 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from shared.database import DatabaseManager, Finding, FindingStatus, Vote, VoteType
 from shared.config import settings
 
+try:
+    from debate import DebateCoordinator
+except ImportError:
+    # Fallback if debate module not available
+    DebateCoordinator = None
+
 class ValidatorAgent:
-    """Validates findings through multi-agent reproduction"""
+    """Validates findings through multi-agent reproduction and debate"""
     
     def __init__(self):
         self.db_manager = DatabaseManager(settings.database_url)
+        self.debate_coordinator = DebateCoordinator() if DebateCoordinator else None
         self.agent_id = "validator-agent-1"
     
     def execute(self, finding_id: str):
@@ -53,6 +60,14 @@ class ValidatorAgent:
                 finding.confidence = 0.2
             
             session.commit()
+            
+            # Initiate multi-agent debate for high-severity findings
+            if self.debate_coordinator and finding.severity.value in ["critical", "high"]:
+                print(f"Initiating multi-agent debate for finding {finding_id}")
+                debate_agents = ["validator-agent", "exploit-agent", "recon-agent"]
+                debate_result = self.debate_coordinator.initiate_debate(str(finding_id), debate_agents)
+                print(f"Debate result: {debate_result.get('consensus', {})}")
+            
             print(f"Validation completed for finding {finding_id}")
         
         except Exception as e:

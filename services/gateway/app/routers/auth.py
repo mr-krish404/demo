@@ -13,7 +13,7 @@ from shared.security import create_access_token, hash_password, verify_password,
 from shared.database import DatabaseManager
 from shared.config import settings
 
-router = APIRouter()
+router = APIRouter(prefix="")
 
 class SignupRequest(BaseModel):
     email: EmailStr

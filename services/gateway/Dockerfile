@@ -12,17 +12,17 @@ RUN apt-get update && apt-get install -y \
 RUN pip install poetry
 
 # Copy poetry files
-COPY pyproject.toml poetry.lock* ./
+COPY services/gateway/pyproject.toml services/gateway/poetry.lock* ./
 
 # Install dependencies
 RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --no-root
 
 # Copy application code
-COPY . .
+COPY services/gateway/ .
 
 # Copy shared modules
-COPY ../shared /app/shared
+COPY services/shared /app/shared
 
 # Expose port
 EXPOSE 8080

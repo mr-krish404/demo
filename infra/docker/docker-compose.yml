@@ -62,8 +62,8 @@ services:
 
   gateway:
     build:
-      context: ../../services/gateway
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/gateway/Dockerfile
     container_name: apex-gateway
     ports:
       - "8080:8080"
@@ -80,8 +80,8 @@ services:
 
   orchestrator:
     build:
-      context: ../../services/orchestrator
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/orchestrator/Dockerfile
     container_name: apex-orchestrator
     ports:
       - "8081:8081"
@@ -103,8 +103,8 @@ services:
 
   celery-worker:
     build:
-      context: ../../services/orchestrator
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/orchestrator/Dockerfile
     container_name: apex-celery-worker
     command: celery -A app.celery_app worker --loglevel=info --concurrency=4
     environment:
@@ -122,8 +122,8 @@ services:
 
   agent-runner:
     build:
-      context: ../../services/agent-runner
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/agent-runner/Dockerfile
     container_name: apex-agent-runner
     ports:
       - "8082:8082"

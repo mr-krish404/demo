@@ -101,6 +101,44 @@ async def get_scan_status(project_id: str):
     finally:
         session.close()
 
+@app.post("/dispatch-job")
+async def dispatch_job(request: dict):
+    """Dispatch a job to Celery worker"""
+    from app.celery_app import execute_agent_job
+    import uuid
+    
+    job_id = request.get("job_id")
+    if not job_id:
+        raise HTTPException(status_code=400, detail="job_id is required")
+    
+    # Update job status to queued
+    session = next(db_manager.get_session())
+    try:
+        job = session.query(Job).filter(Job.id == uuid.UUID(job_id)).first()
+        if job:
+            job.status = JobStatus.QUEUED
+            session.commit()
+            
+            # Get job details for agent execution
+            test_case = session.query(TestCase).filter(TestCase.id == job.test_case_id).first()
+            
+            # Dispatch to Celery with proper parameters
+            task = execute_agent_job.delay(
+                job_id=str(job.id),
+                agent_type=job.agent_id,
+                parameters=job.evidence_refs or {}
+            )
+            
+            return {
+                "message": "Job dispatched successfully",
+                "job_id": job_id,
+                "task_id": task.id
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Job not found")
+    finally:
+        session.close()
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize on startup"""

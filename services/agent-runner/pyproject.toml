@@ -3,6 +3,7 @@ name = "apex-agent-runner"
 version = "0.1.0"
 description = "Agent Runner service for Apex Pentest X"
 authors = ["Apex Team"]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"

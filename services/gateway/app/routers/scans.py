@@ -80,7 +80,7 @@ async def start_scan(
                     project_id=uuid.UUID(project_id),
                     test_case_id=test_case.id,
                     agent_id=test_case.assigned_agent,
-                    status=JobStatus.PENDING,
+                    status=JobStatus.QUEUED,
                     priority=5,  # Default priority
                     retries=0,
                     eta=datetime.utcnow() + timedelta(seconds=10),

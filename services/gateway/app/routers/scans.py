@@ -66,6 +66,8 @@ async def start_scan(
             test_case_query = test_case_query.filter(TestCase.wstg_id.in_(request.test_cases))
         test_cases = test_case_query.filter(TestCase.automatable == True).all()
         
+        print(f"DEBUG: Found {len(test_cases)} automatable test cases")
+        
         if not test_cases:
             raise HTTPException(status_code=400, detail="No automatable test cases found")
         
@@ -80,7 +82,7 @@ async def start_scan(
                     project_id=uuid.UUID(project_id),
                     test_case_id=test_case.id,
                     agent_id=test_case.assigned_agent,
-                    status=JobStatus.PENDING,
+                    status=JobStatus.QUEUED,
                     priority=5,  # Default priority
                     retries=0,
                     eta=datetime.utcnow() + timedelta(seconds=10),
@@ -89,7 +91,9 @@ async def start_scan(
                 session.add(job)
                 jobs_created.append(job)
         
+        print(f"DEBUG: Created {len(jobs_created)} jobs, committing to database...")
         session.commit()
+        print(f"DEBUG: Jobs committed successfully")
         
         # Dispatch jobs to Celery
         for job in jobs_created:

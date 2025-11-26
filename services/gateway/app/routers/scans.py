@@ -41,6 +41,9 @@ async def start_scan(
     current_user: dict = Depends(lambda: {"sub": "user_1"})
 ):
     """Start a scan for a project"""
+    import httpx
+    from shared.database import TestCase, Target
+    
     session = next(db_manager.get_session())
     try:
         # Verify project ownership
@@ -52,13 +55,60 @@ async def start_scan(
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
         
-        # TODO: Call orchestrator to schedule scan
-        # For now, return a placeholder response
+        # Get targets for the project
+        targets = session.query(Target).filter(Target.project_id == uuid.UUID(project_id)).all()
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets configured for this project")
+        
+        # Get test cases to run
+        test_case_query = session.query(TestCase)
+        if request.test_cases:
+            test_case_query = test_case_query.filter(TestCase.wstg_id.in_(request.test_cases))
+        test_cases = test_case_query.filter(TestCase.automatable == True).all()
+        
+        if not test_cases:
+            raise HTTPException(status_code=400, detail="No automatable test cases found")
+        
+        # Create jobs for each test case
+        from shared.database import Job, JobStatus
+        from datetime import datetime, timedelta
+        
+        jobs_created = []
+        for test_case in test_cases:
+            for target in targets:
+                job = Job(
+                    project_id=uuid.UUID(project_id),
+                    test_case_id=test_case.id,
+                    agent_id=test_case.assigned_agent,
+                    status=JobStatus.PENDING,
+                    priority=5,  # Default priority
+                    retries=0,
+                    eta=datetime.utcnow() + timedelta(seconds=10),
+                    evidence_refs={"target_id": str(target.id), "target_value": target.value}
+                )
+                session.add(job)
+                jobs_created.append(job)
+        
+        session.commit()
+        
+        # Dispatch jobs to Celery
+        for job in jobs_created:
+            try:
+                # Call orchestrator to dispatch job
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        "http://orchestrator:8081/dispatch-job",
+                        json={"job_id": str(job.id)},
+                        timeout=5.0
+                    )
+            except Exception as e:
+                print(f"Failed to dispatch job {job.id}: {e}")
         
         return {
             "message": "Scan started successfully",
             "project_id": project_id,
-            "status": "queued"
+            "status": "queued",
+            "jobs_created": len(jobs_created)
         }
     finally:
         session.close()

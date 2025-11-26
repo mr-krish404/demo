@@ -62,26 +62,34 @@ services:
 
   gateway:
     build:
-      context: ../../services/gateway
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/gateway/Dockerfile
     container_name: apex-gateway
     ports:
       - "8080:8080"
     environment:
       - DATABASE_URL=postgresql://apex_user:apex_password_dev@postgres:5432/apex_pentest
       - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=apex_minio
+      - MINIO_SECRET_KEY=apex_minio_password_dev
+      - CHROMA_URL=http://chromadb:8000
       - JWT_SECRET=dev_jwt_secret_change_in_production
+      - GEMINI_API_KEY=AIzaSyCGf8zL3BEF4nO6dH7sDhr4pRjynxbmESo
+      - LLM_MODEL=gemini-2.0-flash
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     restart: unless-stopped
 
   orchestrator:
     build:
-      context: ../../services/orchestrator
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/orchestrator/Dockerfile
     container_name: apex-orchestrator
     ports:
       - "8081:8081"
@@ -92,6 +100,8 @@ services:
       - MINIO_ACCESS_KEY=apex_minio
       - MINIO_SECRET_KEY=apex_minio_password_dev
       - CHROMA_URL=http://chromadb:8000
+      - GEMINI_API_KEY=AIzaSyCGf8zL3BEF4nO6dH7sDhr4pRjynxbmESo
+      - LLM_MODEL=gemini-2.0-flash
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,8 +113,8 @@ services:
 
   celery-worker:
     build:
-      context: ../../services/orchestrator
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/orchestrator/Dockerfile
     container_name: apex-celery-worker
     command: celery -A app.celery_app worker --loglevel=info --concurrency=4
     environment:
@@ -113,6 +123,8 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=apex_minio
       - MINIO_SECRET_KEY=apex_minio_password_dev
+      - GEMINI_API_KEY=AIzaSyCGf8zL3BEF4nO6dH7sDhr4pRjynxbmESo
+      - LLM_MODEL=gemini-2.0-flash
     depends_on:
       postgres:
         condition: service_healthy
@@ -122,8 +134,8 @@ services:
 
   agent-runner:
     build:
-      context: ../../services/agent-runner
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/agent-runner/Dockerfile
     container_name: apex-agent-runner
     ports:
       - "8082:8082"
@@ -132,6 +144,8 @@ services:
     environment:
       - DATABASE_URL=postgresql://apex_user:apex_password_dev@postgres:5432/apex_pentest
       - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=AIzaSyCGf8zL3BEF4nO6dH7sDhr4pRjynxbmESo
+      - LLM_MODEL=gemini-2.0-flash
     depends_on:
       postgres:
         condition: service_healthy

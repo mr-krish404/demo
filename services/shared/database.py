@@ -116,7 +116,7 @@ class Credential(Base):
     target_id = Column(UUID(as_uuid=True), ForeignKey("targets.id"), nullable=True)
     type = Column(SQLEnum(CredentialType), nullable=False)
     encrypted_payload = Column(Text, nullable=False)
-    metadata = Column(JSON, nullable=False, default={})
+    extra = Column("metadata", JSON, nullable=False, default={})
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     
     # Relationships
@@ -134,7 +134,7 @@ class TestCase(Base):
     automatable = Column(Boolean, nullable=False, default=True)
     assigned_agent = Column(String(100), nullable=True)
     priority = Column(Integer, nullable=False, default=5)
-    metadata = Column(JSON, nullable=False, default={})
+    extra = Column("metadata", JSON, nullable=False, default={})
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     
     # Relationships
@@ -183,7 +183,7 @@ class Finding(Base):
     affected_parameter = Column(String(255), nullable=True)
     remediation = Column(Text, nullable=True)
     references = Column(JSON, nullable=False, default=[])
-    metadata = Column(JSON, nullable=False, default={})
+    extra = Column("metadata", JSON, nullable=False, default={})
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     validated_at = Column(DateTime, nullable=True)
     
@@ -202,7 +202,7 @@ class Evidence(Base):
     storage_key = Column(String(512), nullable=False)
     filename = Column(String(255), nullable=True)
     size_bytes = Column(Integer, nullable=True)
-    metadata = Column(JSON, nullable=False, default={})
+    extra = Column("metadata", JSON, nullable=False, default={})
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     
     # Relationships
@@ -217,7 +217,7 @@ class Vote(Base):
     vote = Column(SQLEnum(VoteType), nullable=False)
     rationale = Column(Text, nullable=False)
     confidence = Column(Float, nullable=False)
-    metadata = Column(JSON, nullable=False, default={})
+    extra = Column("metadata", JSON, nullable=False, default={})
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     
     # Relationships
@@ -231,7 +231,7 @@ class AgentLog(Base):
     job_id = Column(UUID(as_uuid=True), nullable=True)
     level = Column(String(20), nullable=False)
     message = Column(Text, nullable=False)
-    metadata = Column(JSON, nullable=False, default={})
+    extra = Column("metadata", JSON, nullable=False, default={})
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 # Database connection management

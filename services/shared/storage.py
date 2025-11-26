@@ -12,7 +12,7 @@ from .config import settings
 class StorageManager:
     def __init__(self):
         self.client = Minio(
-            settings.minio_endpoint,
+            endpoint=settings.minio_endpoint,
             access_key=settings.minio_access_key,
             secret_key=settings.minio_secret_key,
             secure=settings.minio_secure
@@ -23,8 +23,8 @@ class StorageManager:
     def _ensure_bucket_exists(self):
         """Ensure the evidence bucket exists"""
         try:
-            if not self.client.bucket_exists(self.bucket_name):
-                self.client.make_bucket(self.bucket_name)
+            if not self.client.bucket_exists(bucket_name=self.bucket_name):
+                self.client.make_bucket(bucket_name=self.bucket_name)
         except S3Error as e:
             print(f"Error creating bucket: {e}")
     
@@ -32,10 +32,10 @@ class StorageManager:
         """Upload a file to storage"""
         try:
             self.client.put_object(
-                self.bucket_name,
-                object_name,
-                file_data,
-                length,
+                bucket_name=self.bucket_name,
+                object_name=object_name,
+                data=file_data,
+                length=length,
                 content_type=content_type
             )
             return True
@@ -51,7 +51,7 @@ class StorageManager:
     def download_file(self, object_name: str) -> Optional[bytes]:
         """Download a file from storage"""
         try:
-            response = self.client.get_object(self.bucket_name, object_name)
+            response = self.client.get_object(bucket_name=self.bucket_name, object_name=object_name)
             data = response.read()
             response.close()
             response.release_conn()
@@ -64,8 +64,8 @@ class StorageManager:
         """Get a presigned URL for temporary access"""
         try:
             url = self.client.presigned_get_object(
-                self.bucket_name,
-                object_name,
+                bucket_name=self.bucket_name,
+                object_name=object_name,
                 expires=expires
             )
             return url
@@ -76,7 +76,7 @@ class StorageManager:
     def delete_file(self, object_name: str) -> bool:
         """Delete a file from storage"""
         try:
-            self.client.remove_object(self.bucket_name, object_name)
+            self.client.remove_object(bucket_name=self.bucket_name, object_name=object_name)
             return True
         except S3Error as e:
             print(f"Error deleting file: {e}")
@@ -85,7 +85,7 @@ class StorageManager:
     def list_files(self, prefix: str = "") -> list:
         """List files with a given prefix"""
         try:
-            objects = self.client.list_objects(self.bucket_name, prefix=prefix)
+            objects = self.client.list_objects(bucket_name=self.bucket_name, prefix=prefix)
             return [obj.object_name for obj in objects]
         except S3Error as e:
             print(f"Error listing files: {e}")

@@ -3,6 +3,7 @@ name = "apex-reporter-agent"
 version = "0.1.0"
 description = "Reporter Agent for Apex Pentest X"
 authors = ["Apex Team"]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
